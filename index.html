@@ -1,20 +1,95 @@
-<!DOCTYPE html>
+
+  <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Favicon Generator</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Favicon Generator Pro</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    @import url('style.css');
+  </style>
 </head>
 <body>
   <div class="container">
-    <h1>Favicon Generator</h1>
-    <input type="file" id="imageInput" accept="image/*" />
-    <button id="generateBtn">Generate Favicons</button>
-    <a id="downloadLink" style="display: none;">Download ZIP</a>
-    <div id="preview"></div>
+    <div class="header">
+      <h1><i class="fas fa-star"></i> Favicon Generator Pro</h1>
+      <p>Create professional favicons in multiple formats and sizes</p>
+    </div>
+
+    <div class="main-panel">
+      <div class="upload-section">
+        <div class="upload-area" onclick="document.getElementById('imageInput').click()">
+          <div class="upload-icon">
+            <i class="fas fa-cloud-upload-alt"></i>
+          </div>
+          <div class="upload-text">Drop your image here or click to browse</div>
+          <div class="upload-subtext">Supports PNG, JPG, SVG, WebP • Max 10MB</div>
+        </div>
+        <input type="file" id="imageInput" accept="image/*" />
+      </div>
+
+      <div class="controls">
+        <div class="control-group">
+          <label>Output Strategy</label>
+          <select id="strategySelect">
+            <option value="standard">Standard Sizes (16-256px)</option>
+            <option value="web">Web Optimized (16, 32, 48, 180, 192)</option>
+            <option value="app">App Icons (57-1024px)</option>
+            <option value="custom">Custom Sizes</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label>Output Formats</label>
+          <div class="format-selector">
+            <div class="format-btn active" data-format="png">
+              <i class="fas fa-image"></i> PNG
+            </div>
+            <div class="format-btn active" data-format="ico">
+              <i class="fas fa-cube"></i> ICO
+            </div>
+            <div class="format-btn" data-format="svg">
+              <i class="fas fa-vector-square"></i> SVG
+            </div>
+            <div class="format-btn" data-format="webp">
+              <i class="fas fa-compress"></i> WebP
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="control-group" id="customSizes" style="display: none;">
+        <label>Custom Sizes (comma-separated)</label>
+        <input type="text" id="customSizesInput" placeholder="16, 32, 48, 64, 128, 256" />
+      </div>
+
+      <button class="generate-btn" id="generateBtn">
+        <i class="fas fa-magic"></i> Generate Favicons
+      </button>
+
+      <div class="progress-bar" id="progressBar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+
+    <div class="preview-section" id="previewSection" style="display: none;">
+      <div class="main-panel">
+        <h2 style="text-align: center; margin-bottom: 30px; color: #374151;">
+          <i class="fas fa-eye"></i> Preview
+        </h2>
+        <div class="preview-grid" id="previewGrid"></div>
+        
+        <div class="download-section">
+          <a class="download-btn" id="downloadBtn" style="display: none;">
+            <i class="fas fa-download"></i> Download ZIP Archive
+          </a>
+        </div>
+      </div>
+    </div>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
+
