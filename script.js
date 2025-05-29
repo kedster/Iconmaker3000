@@ -11,48 +11,47 @@ class FaviconGenerator {
     this.currentImage = null;
     this.generatedFiles = new Map();
     this.selectedPath = '';
+    this.isGenerating = false;
     
     this.initializeEventListeners();
   }
 
   initializeEventListeners() {
-    const elements = {
-      imageInput: document.getElementById('imageInput'),
-      uploadArea: document.querySelector('.upload-area'),
-      generateBtn: document.getElementById('generateBtn'),
-      strategySelect: document.getElementById('strategySelect'),
-      customSizesInput: document.getElementById('customSizesInput'),
-      formatBtns: document.querySelectorAll('.format-btn'),
-      downloadBtn: document.getElementById('downloadBtn'),
-      pathSelect: document.getElementById('pathSelect'),
-      customPathInput: document.getElementById('customPathInput'),
-      copyCodeBtn: document.getElementById('copyCodeBtn')
-    };
+    const imageInput = document.getElementById('imageInput');
+    const uploadArea = document.querySelector('.upload-area');
+    const generateBtn = document.getElementById('generateBtn');
+    const strategySelect = document.getElementById('strategySelect');
+    const customSizesInput = document.getElementById('customSizesInput');
+    const formatBtns = document.querySelectorAll('.format-btn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const pathSelect = document.getElementById('pathSelect');
+    const customPathInput = document.getElementById('customPathInput');
+    const copyCodeBtn = document.getElementById('copyCodeBtn');
 
     // File input and drag & drop
-    elements.imageInput.addEventListener('change', (e) => this.handleFileSelect(e));
-    elements.uploadArea.addEventListener('dragover', (e) => this.handleDragOver(e));
-    elements.uploadArea.addEventListener('dragleave', (e) => this.handleDragLeave(e));
-    elements.uploadArea.addEventListener('drop', (e) => this.handleDrop(e));
+    imageInput?.addEventListener('change', (e) => this.handleFileSelect(e));
+    uploadArea?.addEventListener('dragover', (e) => this.handleDragOver(e));
+    uploadArea?.addEventListener('dragleave', (e) => this.handleDragLeave(e));
+    uploadArea?.addEventListener('drop', (e) => this.handleDrop(e));
 
     // Strategy selection
-    elements.strategySelect.addEventListener('change', (e) => this.handleStrategyChange(e));
-    elements.customSizesInput.addEventListener('input', (e) => this.handleCustomSizes(e));
+    strategySelect?.addEventListener('change', (e) => this.handleStrategyChange(e));
+    customSizesInput?.addEventListener('input', (e) => this.handleCustomSizes(e));
 
     // Path selection
-    elements.pathSelect.addEventListener('change', (e) => this.handlePathChange(e));
-    elements.customPathInput.addEventListener('input', (e) => this.handleCustomPathInput(e));
+    pathSelect?.addEventListener('change', (e) => this.handlePathChange(e));
+    customPathInput?.addEventListener('input', (e) => this.handleCustomPathInput(e));
 
     // Format selection
-    elements.formatBtns.forEach(btn => {
+    formatBtns?.forEach(btn => {
       btn.addEventListener('click', () => this.toggleFormat(btn));
     });
 
     // Generate button
-    elements.generateBtn.addEventListener('click', () => this.generateFavicons());
+    generateBtn?.addEventListener('click', () => this.generateFavicons());
 
     // Copy code button
-    elements.copyCodeBtn.addEventListener('click', () => this.copyHtmlCode());
+    copyCodeBtn?.addEventListener('click', () => this.copyHtmlCode());
   }
 
   handleFileSelect(event) {
@@ -113,9 +112,14 @@ class FaviconGenerator {
 
   updateCustomSizes() {
     const input = document.getElementById('customSizesInput');
+    if (!input.value.trim()) {
+      this.strategies.custom = [];
+      return;
+    }
+    
     const sizes = input.value.split(',')
       .map(s => parseInt(s.trim()))
-      .filter(s => s > 0 && s <= 2048);
+      .filter(s => !isNaN(s) && s > 0 && s <= 2048);
     this.strategies.custom = sizes;
   }
 
@@ -142,21 +146,42 @@ class FaviconGenerator {
       return;
     }
 
-    const img = new Image();
-    img.src = URL.createObjectURL(file);
-    
-    img.onload = () => {
-      this.currentImage = img;
-      this.showToast('Image loaded successfully!');
-      document.getElementById('generateBtn').disabled = false;
-    };
-
-    img.onerror = () => {
-      this.showToast('Failed to load image', 'error');
-    };
+    try {
+      const img = new Image();
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        img.onload = () => {
+          this.currentImage = img;
+          this.showToast('Image loaded successfully!');
+          const generateBtn = document.getElementById('generateBtn');
+          if (generateBtn) generateBtn.disabled = false;
+        };
+        
+        img.onerror = () => {
+          this.showToast('Failed to load image', 'error');
+        };
+        
+        img.src = e.target.result;
+      };
+      
+      reader.onerror = () => {
+        this.showToast('Failed to read file', 'error');
+      };
+      
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error loading image:', error);
+      this.showToast('Error loading image', 'error');
+    }
   }
 
   async generateFavicons() {
+    if (this.isGenerating) {
+      this.showToast('Generation in progress...', 'error');
+      return;
+    }
+
     if (!this.currentImage) {
       this.showToast('Please select an image first', 'error');
       return;
@@ -168,62 +193,70 @@ class FaviconGenerator {
     }
 
     const strategy = document.getElementById('strategySelect').value;
-    const sizes = this.strategies[strategy];
+    const sizes = [...this.strategies[strategy]];
 
     if (sizes.length === 0) {
       this.showToast('No sizes selected', 'error');
       return;
     }
 
+    this.isGenerating = true;
     this.showProgress();
     this.generatedFiles.clear();
 
-    const zip = new JSZip();
-    const iconsFolder = zip.folder('favicons');
     const previewGrid = document.getElementById('previewGrid');
-    previewGrid.innerHTML = '';
+    if (previewGrid) previewGrid.innerHTML = '';
 
-    const includeGreyedOut = document.getElementById('includeGreyedOut').checked;
+    const includeGreyedOut = document.getElementById('includeGreyedOut')?.checked || false;
     const variants = includeGreyedOut ? ['normal', 'greyed'] : ['normal'];
 
-    let progress = 0;
-    const totalOperations = sizes.length * this.activeFormats.size * variants.length;
+    try {
+      const zip = new JSZip();
+      let progress = 0;
+      const totalOperations = sizes.length * this.activeFormats.size * variants.length;
 
-    for (let i = 0; i < sizes.length; i++) {
-      const size = sizes[i];
-      
-      for (const format of this.activeFormats) {
-        for (const variant of variants) {
-          try {
-            const result = await this.createIcon(size, format, variant);
-            
-            if (result) {
-              this.generatedFiles.set(`${size}-${format}-${variant}`, result);
-              iconsFolder.file(result.filename, result.data, result.options || {});
-              this.addPreviewItem(size, format, variant, result.dataUrl);
+      // Process each combination with proper async handling
+      for (const size of sizes) {
+        for (const format of this.activeFormats) {
+          for (const variant of variants) {
+            try {
+              const result = await this.createIcon(size, format, variant);
+              
+              if (result) {
+                this.generatedFiles.set(`${size}-${format}-${variant}`, result);
+                zip.file(result.filename, result.data);
+                this.addPreviewItem(size, format, variant, result.dataUrl);
+              }
+              
+              progress++;
+              this.updateProgress((progress / totalOperations) * 100);
+              
+              // Yield control to prevent browser freeze
+              if (progress % 3 === 0) {
+                await new Promise(resolve => setTimeout(resolve, 10));
+              }
+            } catch (error) {
+              console.error(`Error generating ${size}px ${format} ${variant}:`, error);
             }
-            
-            progress++;
-            this.updateProgress((progress / totalOperations) * 100);
-            
-            // Small delay to prevent UI blocking
-            await new Promise(resolve => setTimeout(resolve, 10));
-          } catch (error) {
-            console.error(`Error generating ${size}px ${format} ${variant}:`, error);
           }
         }
       }
-    }
 
-    // Generate the ZIP file
-    try {
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      // Generate ZIP file
+      const zipBlob = await zip.generateAsync({ 
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 6 }
+      });
+      
       const zipUrl = URL.createObjectURL(zipBlob);
       
       const downloadBtn = document.getElementById('downloadBtn');
-      downloadBtn.href = zipUrl;
-      downloadBtn.download = 'favicons.zip';
-      downloadBtn.style.display = 'inline-flex';
+      if (downloadBtn) {
+        downloadBtn.href = zipUrl;
+        downloadBtn.download = 'favicons.zip';
+        downloadBtn.style.display = 'inline-flex';
+      }
       
       this.hideProgress();
       this.showPreview();
@@ -231,61 +264,62 @@ class FaviconGenerator {
       
       this.showToast(`Generated ${this.generatedFiles.size} favicon files!`);
     } catch (error) {
-      console.error('Error creating ZIP:', error);
-      this.showToast('Error creating download package', 'error');
+      console.error('Error during generation:', error);
+      this.showToast('Error generating favicons', 'error');
       this.hideProgress();
+    } finally {
+      this.isGenerating = false;
     }
   }
 
-  async createIcon(size, format, variant) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    
-    canvas.width = size;
-    canvas.height = size;
+  createIcon(size, format, variant) {
+    return new Promise((resolve, reject) => {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = size;
+        canvas.height = size;
 
-    // Apply greyscale filter if needed
-    if (variant === 'greyed') {
-      ctx.filter = 'grayscale(100%) opacity(0.5)';
-    }
+        // Clear canvas
+        ctx.clearRect(0, 0, size, size);
 
-    // Draw image with proper scaling
-    ctx.drawImage(this.currentImage, 0, 0, size, size);
+        // Apply greyscale filter if needed
+        if (variant === 'greyed') {
+          ctx.filter = 'grayscale(100%) opacity(0.5)';
+        }
 
-    const filename = this.getFilename(size, format, variant);
+        // Draw image with proper scaling
+        ctx.drawImage(this.currentImage, 0, 0, size, size);
 
-    if (format === 'ico') {
-      // For ICO format, convert canvas to blob and then to array buffer
-      return new Promise((resolve) => {
-        canvas.toBlob(async (blob) => {
-          const arrayBuffer = await blob.arrayBuffer();
-          resolve({
-            filename,
-            data: arrayBuffer,
-            dataUrl: canvas.toDataURL('image/png'),
-            options: { binary: true }
-          });
-        }, 'image/png');
-      });
-    } else {
-      // For other formats
-      const mimeType = this.getMimeType(format);
-      return new Promise((resolve) => {
-        canvas.toBlob(async (blob) => {
-          const arrayBuffer = await blob.arrayBuffer();
-          resolve({
-            filename,
-            data: arrayBuffer,
-            dataUrl: canvas.toDataURL(mimeType),
-            options: { binary: true }
-          });
-        }, mimeType);
-      });
-    }
+        const filename = this.getFilename(size, format, variant);
+        const mimeType = this.getMimeType(format);
+
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            reject(new Error('Failed to create blob'));
+            return;
+          }
+
+          const reader = new FileReader();
+          reader.onload = () => {
+            resolve({
+              filename,
+              data: reader.result,
+              dataUrl: canvas.toDataURL(mimeType, 0.9)
+            });
+          };
+          reader.onerror = () => reject(new Error('Failed to read blob'));
+          reader.readAsArrayBuffer(blob);
+        }, mimeType, 0.9);
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
 
   getFilename(size, format, variant) {
-    const customFilename = document.getElementById('customFilenameInput').value || 'favicon';
+    const customFilename = document.getElementById('customFilenameInput')?.value || 'favicon';
     const path = this.selectedPath;
     const variantSuffix = variant === 'greyed' ? '-disabled' : '';
     
@@ -306,20 +340,22 @@ class FaviconGenerator {
       jpeg: 'image/jpeg',
       webp: 'image/webp',
       svg: 'image/svg+xml',
-      ico: 'image/x-icon'
+      ico: 'image/png' // Use PNG for ICO compatibility
     };
     return mimeTypes[format] || 'image/png';
   }
 
   addPreviewItem(size, format, variant, dataUrl) {
     const previewGrid = document.getElementById('previewGrid');
+    if (!previewGrid) return;
+    
     const item = document.createElement('div');
     item.className = 'preview-item';
     
     const variantLabel = variant === 'greyed' ? '<div class="variant-label">Disabled</div>' : '';
     
     item.innerHTML = `
-      <img src="${dataUrl}" alt="${size}px ${format}">
+      <img src="${dataUrl}" alt="${size}px ${format}" loading="lazy">
       <div class="size-label">${size}×${size}</div>
       <div class="format-label">${format.toUpperCase()}</div>
       ${variantLabel}
@@ -329,11 +365,11 @@ class FaviconGenerator {
   }
 
   generateHtmlCode() {
-    const customFilename = document.getElementById('customFilenameInput').value || 'favicon';
+    const customFilename = document.getElementById('customFilenameInput')?.value || 'favicon';
     const path = this.selectedPath;
     const strategy = document.getElementById('strategySelect').value;
     const sizes = this.strategies[strategy];
-    const includeGreyedOut = document.getElementById('includeGreyedOut').checked;
+    const includeGreyedOut = document.getElementById('includeGreyedOut')?.checked || false;
 
     let htmlCode = '<!-- Favicon Links -->\n';
     
@@ -342,15 +378,11 @@ class FaviconGenerator {
     
     // Size-specific favicons
     for (const format of this.activeFormats) {
-      if (format === 'ico') continue; // Already handled above
+      if (format === 'ico') continue;
       
       for (const size of sizes) {
         const mimeType = this.getMimeType(format);
         htmlCode += `<link rel="icon" type="${mimeType}" sizes="${size}x${size}" href="${path}${customFilename}-${size}x${size}.${format}">\n`;
-        
-        if (includeGreyedOut) {
-          htmlCode += `<link rel="icon" type="${mimeType}" sizes="${size}x${size}" href="${path}${customFilename}-${size}x${size}-disabled.${format}" media="(prefers-reduced-motion: reduce)">\n`;
-        }
       }
     }
     
@@ -359,24 +391,25 @@ class FaviconGenerator {
       htmlCode += `<link rel="apple-touch-icon" href="${path}${customFilename}-180x180.png">\n`;
     }
     
-    // Web app manifest (if applicable)
-    if (this.activeFormats.has('png') && sizes.includes(192)) {
-      htmlCode += `<link rel="manifest" href="${path}site.webmanifest">\n`;
-    }
-    
     // Theme color
-    htmlCode += '<meta name="theme-color" content="#667eea">\n';
+    htmlCode += '<meta name="theme-color" content="#667eea">';
     
     const htmlCodeOutput = document.getElementById('htmlCodeOutput');
-    htmlCodeOutput.value = htmlCode;
+    if (htmlCodeOutput) {
+      htmlCodeOutput.value = htmlCode;
+    }
     
     const htmlCodeSection = document.getElementById('htmlCodeSection');
-    htmlCodeSection.style.display = 'block';
+    if (htmlCodeSection) {
+      htmlCodeSection.style.display = 'block';
+    }
   }
 
   copyHtmlCode() {
     const htmlCodeOutput = document.getElementById('htmlCodeOutput');
     const copyBtn = document.getElementById('copyCodeBtn');
+    
+    if (!htmlCodeOutput || !copyBtn) return;
     
     htmlCodeOutput.select();
     document.execCommand('copy');
@@ -395,24 +428,32 @@ class FaviconGenerator {
 
   showProgress() {
     const progressBar = document.getElementById('progressBar');
-    progressBar.style.display = 'block';
-    this.updateProgress(0);
+    if (progressBar) {
+      progressBar.style.display = 'block';
+      this.updateProgress(0);
+    }
   }
 
   updateProgress(percentage) {
     const progressFill = document.getElementById('progressFill');
-    progressFill.style.width = `${percentage}%`;
+    if (progressFill) {
+      progressFill.style.width = `${Math.min(100, Math.max(0, percentage))}%`;
+    }
   }
 
   hideProgress() {
     const progressBar = document.getElementById('progressBar');
-    progressBar.style.display = 'none';
+    if (progressBar) {
+      progressBar.style.display = 'none';
+    }
   }
 
   showPreview() {
     const previewSection = document.getElementById('previewSection');
-    previewSection.style.display = 'block';
-    previewSection.scrollIntoView({ behavior: 'smooth' });
+    if (previewSection) {
+      previewSection.style.display = 'block';
+      previewSection.scrollIntoView({ behavior: 'smooth' });
+    }
   }
 
   showToast(message, type = 'success') {
@@ -435,12 +476,20 @@ class FaviconGenerator {
     // Hide toast after 3 seconds
     setTimeout(() => {
       toast.classList.remove('show');
-      setTimeout(() => toast.remove(), 300);
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.remove();
+        }
+      }, 300);
     }, 3000);
   }
 }
 
 // Initialize the favicon generator when the page loads
 document.addEventListener('DOMContentLoaded', () => {
-  new FaviconGenerator();
+  try {
+    new FaviconGenerator();
+  } catch (error) {
+    console.error('Failed to initialize FaviconGenerator:', error);
+  }
 });
