@@ -1,4 +1,4 @@
-    class FaviconGenerator {
+  class FaviconGenerator {
       constructor() {
         this.strategies = {
           standard: [16, 32, 48, 64, 96, 128, 256],
@@ -154,29 +154,34 @@
         const previewGrid = document.getElementById('previewGrid');
         previewGrid.innerHTML = '';
 
+        const includeGreyedOut = document.getElementById('includeGreyedOut').checked;
+        const variants = includeGreyedOut ? ['normal', 'greyed'] : ['normal'];
+
         let progress = 0;
-        const totalOperations = sizes.length * this.activeFormats.size;
+        const totalOperations = sizes.length * this.activeFormats.size * variants.length;
 
         for (let i = 0; i < sizes.length; i++) {
           const size = sizes[i];
           
           for (const format of this.activeFormats) {
-            try {
-              const result = await this.createIcon(size, format);
-              
-              if (result) {
-                this.generatedFiles.set(`${size}-${format}`, result);
-                iconsFolder.file(result.filename, result.data, result.options || {});
-                this.addPreviewItem(size, format, result.dataUrl);
+            for (const variant of variants) {
+              try {
+                const result = await this.createIcon(size, format, variant);
+                
+                if (result) {
+                  this.generatedFiles.set(`${size}-${format}-${variant}`, result);
+                  iconsFolder.file(result.filename, result.data, result.options || {});
+                  this.addPreviewItem(size, format, variant, result.dataUrl);
+                }
+                
+                progress++;
+                this.updateProgress((progress / totalOperations) * 100);
+                
+                // Small delay to prevent UI blocking
+                await new Promise(resolve => setTimeout(resolve, 10));
+              } catch (error) {
+                console.error(`Error generating ${size}px ${format} ${variant}:`, error);
               }
-              
-              progress++;
-              this.updateProgress((progress / totalOperations) * 100);
-              
-              // Small delay to prevent UI blocking
-              await new Promise(resolve => setTimeout(resolve, 10));
-            } catch (error) {
-              console.error(`Error generating ${size}px ${format}:`, error);
             }
           }
         }
@@ -205,7 +210,7 @@
         }
       }
 
-      async createIcon(size, format) {
+      async createIcon(size, format, variant = 'normal') {
         const canvas = document.createElement('canvas');
         canvas.width = size;
         canvas.height = size;
@@ -224,19 +229,40 @@
         
         ctx.drawImage(this.currentImage, x, y, scaledWidth, scaledHeight);
 
+        // Apply greyed-out effect if needed
+        if (variant === 'greyed') {
+          const imageData = ctx.getImageData(0, 0, size, size);
+          const data = imageData.data;
+          
+          for (let i = 0; i < data.length; i += 4) {
+            // Convert to grayscale using luminance formula
+            const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+            data[i] = gray;     // Red
+            data[i + 1] = gray; // Green
+            data[i + 2] = gray; // Blue
+            // Alpha stays the same
+            data[i + 3] = Math.round(data[i + 3] * 0.6); // Reduce opacity for disabled look
+          }
+          
+          ctx.putImageData(imageData, 0, 0);
+        }
+
+        const customFilename = document.getElementById('customFilenameInput').value.trim() || 'favicon';
+        const variantSuffix = variant === 'greyed' ? '-disabled' : '';
+        
         let filename, data, dataUrl, options;
 
         switch (format) {
           case 'png':
             dataUrl = canvas.toDataURL('image/png');
-            filename = `favicon-${size}x${size}.png`;
+            filename = `${customFilename}-${size}x${size}${variantSuffix}.png`;
             data = dataUrl.split(',')[1];
             options = { base64: true };
             break;
             
           case 'webp':
             dataUrl = canvas.toDataURL('image/webp', 0.9);
-            filename = `favicon-${size}x${size}.webp`;
+            filename = `${customFilename}-${size}x${size}${variantSuffix}.webp`;
             data = dataUrl.split(',')[1];
             options = { base64: true };
             break;
@@ -244,7 +270,7 @@
           case 'ico':
             // For ICO, we'll use PNG data but with .ico extension
             dataUrl = canvas.toDataURL('image/png');
-            filename = size === 32 ? 'favicon.ico' : `favicon-${size}x${size}.ico`;
+            filename = size === 32 && variant === 'normal' ? `${customFilename}.ico` : `${customFilename}-${size}x${size}${variantSuffix}.ico`;
             data = dataUrl.split(',')[1];
             options = { base64: true };
             break;
@@ -255,7 +281,7 @@
             const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
               <image href="${dataUrl}" width="${size}" height="${size}"/>
             </svg>`;
-            filename = `favicon-${size}x${size}.svg`;
+            filename = `${customFilename}-${size}x${size}${variantSuffix}.svg`;
             data = svgContent;
             options = {};
             break;
@@ -267,15 +293,18 @@
         return { filename, data, dataUrl, options };
       }
 
-      addPreviewItem(size, format, dataUrl) {
+      addPreviewItem(size, format, variant, dataUrl) {
         const previewGrid = document.getElementById('previewGrid');
         const item = document.createElement('div');
         item.className = 'preview-item';
         
+        const variantLabel = variant === 'greyed' ? '<div class="variant-label">Disabled</div>' : '';
+        
         item.innerHTML = `
-          <img src="${dataUrl}" alt="${size}x${size} ${format}" />
+          <img src="${dataUrl}" alt="${size}x${size} ${format} ${variant}" />
           <div class="size-label">${size}×${size}</div>
           <div class="format-label">${format.toUpperCase()}</div>
+          ${variantLabel}
         `;
         
         previewGrid.appendChild(item);

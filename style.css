@@ -121,6 +121,10 @@
       border: 1px solid #e2e8f0;
     }
 
+    .control-group.full-width {
+      grid-column: 1 / -1;
+    }
+
     .control-group label {
       display: block;
       font-weight: 600;
@@ -129,7 +133,7 @@
       font-size: 0.95rem;
     }
 
-    select, input[type="range"] {
+    select, input[type="text"] {
       width: 100%;
       padding: 10px;
       border: 2px solid #e2e8f0;
@@ -138,7 +142,7 @@
       transition: all 0.3s ease;
     }
 
-    select:focus, input[type="range"]:focus {
+    select:focus, input[type="text"]:focus {
       outline: none;
       border-color: #667eea;
       box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -174,6 +178,34 @@
       border-color: #667eea;
       background: #667eea;
       color: white;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 15px;
+      padding: 15px;
+      background: #ffffff;
+      border-radius: 10px;
+      border: 2px solid #e2e8f0;
+      transition: all 0.3s ease;
+    }
+
+    .checkbox-group:hover {
+      border-color: #667eea;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: #667eea;
+    }
+
+    .checkbox-group label {
+      margin: 0;
+      font-weight: 500;
+      cursor: pointer;
     }
 
     .generate-btn {
@@ -253,6 +285,12 @@
       color: #64748b;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+    }
+
+    .preview-item .variant-label {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      margin-top: 3px;
     }
 
     .download-section {

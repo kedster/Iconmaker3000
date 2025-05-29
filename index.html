@@ -1,5 +1,8 @@
 
-  <!DOCTYPE html>
+
+
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -7,6 +10,7 @@
   <title>Icon Generator 3000</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <link rel="stylesheet" type="text/css" href="style.css" />
+
 </head>
 <body>
   <div class="container">
@@ -55,6 +59,18 @@
             </div>
           </div>
         </div>
+
+        <div class="control-group full-width">
+          <label>Custom Filename (without extension)</label>
+          <input type="text" id="customFilenameInput" placeholder="favicon" value="favicon" />
+        </div>
+
+        <div class="control-group full-width">
+          <div class="checkbox-group">
+            <input type="checkbox" id="includeGreyedOut" />
+            <label for="includeGreyedOut">Also generate greyed-out/disabled versions</label>
+          </div>
+        </div>
       </div>
 
       <div class="control-group" id="customSizes" style="display: none;">
@@ -90,4 +106,3 @@
   <script src="script.js"></script>
 </body>
 </html>
-
