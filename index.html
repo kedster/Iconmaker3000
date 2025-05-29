@@ -6,7 +6,6 @@
   <title>Icon Generator 3000</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <link rel="stylesheet" type="text/css" href="style.css" />
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   
   <!-- Custom Favicons -->
   <link rel="icon" type="image/x-icon" href="icons/favicon.ico">
@@ -17,7 +16,7 @@
   <link rel="icon" type="image/x-icon" sizes="128x128" href="icons/favicon-128x128.ico">
   <link rel="icon" type="image/x-icon" sizes="256x256" href="icons/favicon-256x256.ico">
   
-  <!-- Apple Touch Icons (if you want to generate PNG versions later) -->
+  <!-- Apple Touch Icons -->
   <meta name="msapplication-TileColor" content="#667eea">
   <meta name="theme-color" content="#667eea">
 </head>
@@ -70,8 +69,24 @@
         </div>
 
         <div class="control-group full-width">
-          <label>Custom Filename (without extension)</label>
-          <input type="text" id="customFilenameInput" placeholder="favicon" value="favicon" />
+          <label>File Path & Name Configuration</label>
+          <div class="path-filename-group">
+            <div class="path-selector">
+              <select id="pathSelect">
+                <option value="">Root Directory (/)</option>
+                <option value="icons/">icons/</option>
+                <option value="assets/">assets/</option>
+                <option value="images/">images/</option>
+                <option value="static/">static/</option>
+                <option value="public/">public/</option>
+                <option value="custom">Custom Path...</option>
+              </select>
+            </div>
+            <div class="filename-input">
+              <input type="text" id="customFilenameInput" placeholder="favicon" value="favicon" />
+            </div>
+          </div>
+          <input type="text" id="customPathInput" placeholder="Enter custom path (e.g., assets/icons/)" style="display: none; margin-top: 10px;" />
         </div>
 
         <div class="control-group full-width">
@@ -107,6 +122,22 @@
           <a class="download-btn" id="downloadBtn" style="display: none;">
             <i class="fas fa-download"></i> Download ZIP Archive
           </a>
+        </div>
+
+        <!-- HTML Code Generation Section -->
+        <div class="html-code-section" id="htmlCodeSection" style="display: none;">
+          <h3 style="text-align: center; margin: 30px 0 20px 0; color: #374151;">
+            <i class="fas fa-code"></i> Generated HTML Code
+          </h3>
+          <div class="code-container">
+            <div class="code-header">
+              <span class="code-title">Copy this code to your HTML &lt;head&gt; section:</span>
+              <button class="copy-btn" id="copyCodeBtn">
+                <i class="fas fa-copy"></i> Copy Code
+              </button>
+            </div>
+            <textarea id="htmlCodeOutput" readonly placeholder="Generated HTML code will appear here..."></textarea>
+          </div>
         </div>
       </div>
     </div>
