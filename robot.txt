@@ -1,0 +1,4 @@
+User-agent: *
+Disallow:
+
+Sitemap:https://icongenerator3000.snap-view.com/sitemap.xml
